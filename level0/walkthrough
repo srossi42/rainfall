@@ -1,0 +1,14 @@
+./level0 => segfault
+
+gdb ./level0
+disas main
+
+=> recuperation de argv[1] + assignation dans eax (instructions +9 a +17)
+=> comparaison de atoi(eax) avec 423 (0x1a7, instruction +25)
+=> lancement de la commande execv si egalite (instruction +145)
+=> sinon jump instruction +152 (fwrite "no")
+=> return 0 (+192 a +198)
+
+
+cat /home/user/level1/.pass
+=> flag

