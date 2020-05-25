@@ -13,11 +13,10 @@ void n (void) {
 
 void o (void) {
   system("/bin/sh");
-  exit(1);
+  _exit(1);
 }
 
 void main(void) {
   n();
   return;
 }
-level5@RainFall:/tmp/test$

